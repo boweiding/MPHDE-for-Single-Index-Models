@@ -1,0 +1,28 @@
+library(robustbase) # package for mqle
+library(ks)
+data(swiss)
+n=length(swiss$Fertility)
+Y=swiss$Fertility
+X=cbind(swiss$Agriculture,swiss$Education, swiss$Catholic, swiss$Infant.Mortality)
+YX<-cbind(Y,X)
+m_fit<-glmrob(Y~X, family = gaussian(link="identity") , 
+              weights.on.x = c("covMcd"),
+              control = glmrobMqle.control(acc = 1e-04, test.acc = "coef", maxit = 100, tcc = 1.345))
+m=coef(m_fit) #estimate by mqle
+phi<-function(theta){
+  Z<-X%*%theta[2:5]+theta[1]
+  Sn<-median(abs(Z-median(Z)))/0.674 #robust scale estimate for Z
+  Sn1<-median(abs(Y-median(Y)))/0.674 #robust scale estimate for Y
+  YZ<-cbind(Y,Z)
+  yh<-Sn1*n^(-0.2)#hpi(Y)
+  zh<-Sn*n^(-0.2)#hpi(Z)
+  y<-seq(min(Y)-3*yh,max(Y)+3*yh,by=0.05)
+  z<-seq(min(Z)-3*zh,max(Z)+3*zh,by=0.05)
+  int<-rep(0,length(z))
+  for (i in 1:length(z)){
+    int[i]<-sum(dnorm(y,z[i],7.168 )^(0.5)*kde(x=YZ,H=diag(c((Sn1*n^(-0.2))^2,(Sn*n^(-0.2))^2)),eval.points = cbind(y,z[i]), binned = F)$estimate^(0.5)*0.05)^2*0.05
+  }
+  phi1<--sum(int)##nlm calculates the minimization of the function
+  return(phi1)
+}
+mhde=nlm(phi, m)$estimate #estimate via mphde
