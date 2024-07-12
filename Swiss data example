@@ -8,6 +8,7 @@ YX<-cbind(Y,X)
 m_fit<-glmrob(Y~X, family = gaussian(link="identity") , 
               weights.on.x = c("covMcd"),
               control = glmrobMqle.control(acc = 1e-04, test.acc = "coef", maxit = 100, tcc = 1.345))
+########## Note that there might be slight differences in the estimates of MQLE via glmrob() under different R versions.
 m=coef(m_fit) #estimate by mqle
 phi<-function(theta){
   Z<-X%*%theta[2:5]+theta[1]
